@@ -1,0 +1,56 @@
+<!--
+Copyright(C) 2024
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/
+-->
+
+<div data-role="page" class="page type-interior pluginConfigurationPage"
+     data-require="emby-button,emby-select,emby-checkbox,emby-linkbutton,emby-input"
+     data-controller="__plugin/classification_mapping_options.js">
+    <div data-role="content">
+        <div class="content-primary">
+            <h3>Classification Maps</h3>
+
+            <table id="mapping_table">
+            </table>
+
+            <br />
+
+            <button id="save_mappings">Save</button>
+            <input type="text" id="add_new_name" />
+            <button id="add_new_button">Add</button>
+
+            <br /><br />
+            <hr />
+
+            <h3>Classification Report</h3>
+
+            <input type="checkbox" id="include_movies" /> Movies | 
+            <input type="checkbox" id="include_series" /> Series | 
+            <input type="checkbox" id="include_correct" /> Include items with correct classification
+            <br /><br />
+
+            <table>
+                <thead>
+                    <tr>
+                        <th> Classification </th>
+                        <th> Count </th>
+                    </tr>
+                </thead>
+                <tbody id="report_table">
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
