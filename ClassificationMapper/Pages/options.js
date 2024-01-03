@@ -28,7 +28,7 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
 
     function RemoveClassification(view, c_name) {
         console.log("removing : " + c_name);
-        if (!confirm("Are you sure you want to delete this mapping?")) {
+        if (!confirm("Are you sure you want to remove this mapping?")) {
             return;
         }
         ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
@@ -36,6 +36,7 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
             delete config.Mappings[c_name];
             ApiClient.updateNamedConfiguration("classification_mapping", config);
             PopulateSettingsPage(view, config);
+            PopulateReportData(view, config);
         });
     }
 
@@ -49,22 +50,43 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         return new_map_list;
     }
 
+    function VerifyMappings(map_data) {
+        let running_list = []
+        let keys = Object.keys(map_data);
+        keys.forEach(function (key) {
+            let value = map_data[key];
+            let new_list = [];
+            value.forEach(function (v) {
+                if (!(v in map_data) && running_list.indexOf(v) == -1) {
+                    new_list.push(v);
+                    running_list.push(v);
+                }
+            });
+            map_data[key] = new_list;
+        });
+        return map_data;
+    }
+
     function SaveMappings(view) {
         var mappings = view.querySelectorAll("#mapping_item");
         //console.log(mappings);
 
+        let new_maps = {}
+        mappings.forEach(function (map_item) {
+            let key = map_item.attributes["map_key"].value;
+            let value = map_item.value;
+            console.log(key + " - " + value);
+            let new_value_tokens = value.split(",");
+            new_maps[key] = CleanMapItems(new_value_tokens);           
+        });
+        new_maps = VerifyMappings(new_maps);
+
         ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
             console.log("Config Options : " + JSON.stringify(config));
-            mappings.forEach(function (map_item) {
-                let key = map_item.attributes["map_key"].value;
-                let value = map_item.value;
-                console.log(key + " - " + value);
-                var new_value_tokens = value.split(",");
-                new_value_tokens = CleanMapItems(new_value_tokens);
-                config.Mappings[key] = new_value_tokens;
-            });
+            config.Mappings = new_maps;
             ApiClient.updateNamedConfiguration("classification_mapping", config);
             PopulateSettingsPage(view, config);
+            PopulateReportData(view, config);
         });
     }
 
@@ -86,8 +108,10 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
             var td = null;
 
             td = document.createElement("td");
+            td.style.width = "1%";
             let key_span = document.createElement("span")
             key_span.style.fontWeight = "bold";
+            key_span.style.whiteSpace = "nowrap";
             key_span.fontSize = "25px";
             key_span.appendChild(document.createTextNode(key))
             td.appendChild(key_span);
@@ -96,7 +120,7 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
             td = document.createElement("td");
             var input_maps = document.createElement("input");
             input_maps.type = "text";
-            input_maps.style.width = "450px";
+            input_maps.style.width = "99%";
             input_maps.value = value.join(',');
             input_maps.setAttribute("map_key", key);
             input_maps.id = "mapping_item";
@@ -123,22 +147,25 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
     }
 
     function AddNewClassification(view) {
-        var new_name = view.querySelector('#add_new_name');
-        if (new_name.value == "") {
+        var new_name_field = view.querySelector('#add_new_name');
+        if (new_name_field.value == "") {
             return;
         }
-        console.log(new_name.value);
+        let new_name = new_name_field.value;
+        new_name = new_name.trim();
+        console.log(new_name);
         ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
             console.log("Config Options : " + JSON.stringify(config));
 
-            if (new_name.value in config.Mappings) {
+            if (new_name in config.Mappings) {
                 return;
             }
 
-            config.Mappings[new_name.value] = [];
+            config.Mappings[new_name] = [];
             ApiClient.updateNamedConfiguration("classification_mapping", config);
-            new_name.value = "";
+            new_name_field.value = "";
             PopulateSettingsPage(view, config);
+            PopulateReportData(view, config);
         });
     }
 
