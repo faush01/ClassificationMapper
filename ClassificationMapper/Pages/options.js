@@ -26,17 +26,57 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         });
     };
 
+    ApiClient.sendPostQuery = function (url_to_get, query_data) {
+        var post_data = JSON.stringify(query_data);
+        console.log("sendPostQuery url  = " + url_to_get);
+        //console.log("sendPostQuery data = " + post_data);
+        return this.ajax({
+            type: "POST",
+            url: url_to_get,
+            dataType: "json",
+            data: post_data,
+            contentType: 'application/json'
+        });
+    };
+
+    function SaveConfigUrl() {
+        return ApiClient.getUrl("class_mapper/save_config?stamp=" + new Date().getTime());
+    }
+
+    function GetConfigUrl() {
+        return ApiClient.getUrl("class_mapper/get_config?stamp=" + new Date().getTime());
+    }
+
+    function SaveConfigData() {
+        let url = "class_mapper/save_config?stamp=" + new Date().getTime();
+        url = ApiClient.getUrl(url);
+        console.log("Save config data url  : " + url);
+
+        let config_data = {
+            'IncludeMovies': true,
+            'IncludeSeries': true,
+            'IncludeCorrect': true,
+            'Mappings': {'AU-ALL': ['PG', 'MA', 'R', 'X']}
+        };
+
+        ApiClient.sendPostQuery(url, config_data).then(function (result) {
+            console.log("Save config data result : " + JSON.stringify(result));
+        });
+    }
+
     function RemoveClassification(view, c_name) {
         console.log("removing : " + c_name);
         if (!confirm("Are you sure you want to remove this mapping?")) {
             return;
         }
-        ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
             console.log("Config Options : " + JSON.stringify(config));
             delete config.Mappings[c_name];
-            ApiClient.updateNamedConfiguration("classification_mapping", config);
-            PopulateSettingsPage(view, config);
-            PopulateReportData(view, config);
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+                PopulateSettingsPage(view, config);
+                PopulateReportData(view, config);
+            });
         });
     }
 
@@ -81,12 +121,14 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         });
         new_maps = VerifyMappings(new_maps);
 
-        ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
             console.log("Config Options : " + JSON.stringify(config));
             config.Mappings = new_maps;
-            ApiClient.updateNamedConfiguration("classification_mapping", config);
-            PopulateSettingsPage(view, config);
-            PopulateReportData(view, config);
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+                PopulateSettingsPage(view, config);
+                PopulateReportData(view, config);
+            });
         });
     }
 
@@ -154,7 +196,7 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         let new_name = new_name_field.value;
         new_name = new_name.trim();
         console.log(new_name);
-        ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
             console.log("Config Options : " + JSON.stringify(config));
 
             if (new_name in config.Mappings) {
@@ -162,52 +204,60 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
             }
 
             config.Mappings[new_name] = [];
-            ApiClient.updateNamedConfiguration("classification_mapping", config);
-            new_name_field.value = "";
-            PopulateSettingsPage(view, config);
-            PopulateReportData(view, config);
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+                new_name_field.value = "";
+                PopulateSettingsPage(view, config);
+                PopulateReportData(view, config);
+            });
         });
     }
 
     function IncludeMoviesChanged(view) {
         var check_include_movies = view.querySelector("#include_movies");
-        ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
             console.log("Config Options : " + JSON.stringify(config));
 
             config.IncludeMovies = check_include_movies.checked;
 
             console.log("Config Options : " + JSON.stringify(config));
 
-            ApiClient.updateNamedConfiguration("classification_mapping", config);
-            PopulateReportData(view, config);
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+                PopulateReportData(view, config);
+            });
         });
     }
 
     function IncludeSeriesChanged(view) {
         var check_include_series = view.querySelector("#include_series");
-        ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
             console.log("Config Options : " + JSON.stringify(config));
 
             config.IncludeSeries = check_include_series.checked;
 
             console.log("Config Options : " + JSON.stringify(config));
 
-            ApiClient.updateNamedConfiguration("classification_mapping", config);
-            PopulateReportData(view, config);
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+                PopulateReportData(view, config);
+            });
         });
     }
 
     function IncludeCorrectChanged(view) {
         var check_include_correct = view.querySelector("#include_correct");
-        ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
             console.log("Config Options : " + JSON.stringify(config));
 
             config.IncludeCorrect = check_include_correct.checked;
 
             console.log("Config Options : " + JSON.stringify(config));
 
-            ApiClient.updateNamedConfiguration("classification_mapping", config);
-            PopulateReportData(view, config);
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+                PopulateReportData(view, config);
+            });
         });
     }
 
@@ -260,8 +310,7 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
 
         // init code here
         view.addEventListener('viewshow', function (e) {
-
-            ApiClient.getNamedConfiguration("classification_mapping").then(function (config) {
+            ApiClient.getApiData(GetConfigUrl()).then(function (config) {
                 PopulateSettingsPage(view, config);
                 PopulateReportData(view, config);
                 PopulateSettings(view, config);
@@ -285,7 +334,7 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
 
             view.querySelector('#include_correct').addEventListener("change", function () {
                 IncludeCorrectChanged(view);
-            });
+            });           
             
         });
 

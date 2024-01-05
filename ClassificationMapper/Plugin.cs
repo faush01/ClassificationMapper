@@ -25,12 +25,11 @@ using System.IO;
 
 namespace ClassificationMapper
 {
-    public class Plugin : BasePlugin<BaseOptions>, IHasThumbImage, IHasWebPages
+    public class Plugin : BasePlugin<BasePluginConfiguration>, IHasThumbImage, IHasWebPages
     {
         public static Plugin Instance { get; private set; }
         public static string PluginName = "Classification Mapper";
         private Guid _id = new Guid("219b4d67-3c8b-4371-8453-0c64696b3d3c");
-        public BaseOptions PluginConfiguration => Configuration;
 
         public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer) : base(applicationPaths, xmlSerializer)
         {

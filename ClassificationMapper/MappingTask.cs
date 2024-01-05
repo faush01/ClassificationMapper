@@ -29,6 +29,7 @@ using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Model.Serialization;
+using MediaBrowser.Common;
 
 namespace ClassificationMapper
 {
@@ -42,6 +43,7 @@ namespace ClassificationMapper
         private readonly IItemRepository _itemRepository;
         private readonly IServerConfigurationManager _config;
         private readonly IXmlSerializer _xmlSerializer;
+        private readonly IApplicationHost _appHost;
 
         public MappingTask(ILibraryManager libraryManager,
             ILogger logger,
@@ -50,7 +52,8 @@ namespace ClassificationMapper
             IMediaProbeManager prob,
             IItemRepository itemRepository,
             IServerConfigurationManager config,
-            IXmlSerializer xmlSerializer)
+            IXmlSerializer xmlSerializer,
+            IApplicationHost appHost)
         {
             _libraryManager = libraryManager;
             _logger = logger;
@@ -60,13 +63,15 @@ namespace ClassificationMapper
             _itemRepository = itemRepository;
             _config = config;
             _xmlSerializer = xmlSerializer;
+            _appHost = appHost;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
             _logger.Info("ClassificationMapper - Task Execute");
 
-            PluginOptions config = _config.GetClassificationMappingOptions();
+            ConfigStore config_store = ConfigStore.GetInstance(_appHost);
+            PluginOptions config = config_store.GetConfig();
 
             // build lookup table
             Dictionary<string, string> lookup_table = new Dictionary<string, string>();

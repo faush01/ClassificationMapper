@@ -14,14 +14,19 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see<http://www.gnu.org/licenses/>.
 */
 
+using MediaBrowser.Common;
+using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Persistence;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Services;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -38,18 +43,67 @@ namespace ClassificationMapper
         public string IncludeCorrect { get; set; }
     }
 
+    // http://localhost:8096/emby/class_mapper/get_config
+    [Route("/class_mapper/get_config", "GET", Summary = "Gets plugin config")]
+    //[Authenticated]
+    public class GetConfig : IReturn<Object>
+    {
+    }
+
+    // http://localhost:8096/emby/class_mapper/save_config
+    [Route("/class_mapper/save_config", "POST", Summary = "Saves plugin config")]
+    //[Authenticated]
+    public class SaveConfig : PluginOptions, IReturn<Object>
+    {
+    }
+
     public class ApiEndpoint : IService
     {
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IServerConfigurationManager _config;
+        private readonly IJsonSerializer _jsonSerializer;
+        private readonly IFileSystem _fileSystem;
+        private readonly IApplicationPaths _applicationPaths;
+        private readonly IApplicationHost _appHost;
 
-        public ApiEndpoint(ILogManager logger, ILibraryManager libraryManager, IServerConfigurationManager config)
+        public ApiEndpoint(ILogManager logger, 
+            ILibraryManager libraryManager, 
+            IServerConfigurationManager config, 
+            IJsonSerializer jsonSerializer, 
+            IFileSystem fileSystem,
+            IApplicationPaths applicationPaths,
+            IApplicationHost appHost)
         {
             _logger = logger.GetLogger("ClassificationMapper - ApiEndpoint");
             _logger.Info("Loaded");
             _libraryManager = libraryManager;
             _config = config;
+            _jsonSerializer = jsonSerializer;
+            _fileSystem = fileSystem;
+            _applicationPaths = applicationPaths;
+            _appHost = appHost;
+        }
+
+        public object Post(SaveConfig request)
+        {
+            string some_data = _jsonSerializer.SerializeToString(request);
+            //_logger.Info("Submitted config data : " + some_data);
+
+            ConfigStore config_store = ConfigStore.GetInstance(_appHost);
+            config_store.SaveConfig(request);
+
+            Dictionary<string, object> responce = new Dictionary<string, object>();
+            responce["message"] = "config saved";
+            return responce;
+        }
+
+        public object Get(GetConfig request)
+        {
+            ConfigStore config_store = ConfigStore.GetInstance(_appHost);
+            PluginOptions loaded_config = config_store.GetConfig();
+
+            return loaded_config;
         }
 
         public object Get(GetReport request)
@@ -61,7 +115,10 @@ namespace ClassificationMapper
                 return classification_count.ToList();
             }
 
-            PluginOptions config = _config.GetClassificationMappingOptions();
+            
+            ConfigStore config_store = ConfigStore.GetInstance(_appHost);
+            PluginOptions config = config_store.GetConfig();
+
             string[] item_types = request.ItemType.Split(',');
             bool include_correct = request.IncludeCorrect.Equals("true", StringComparison.InvariantCultureIgnoreCase);
 
