@@ -108,13 +108,19 @@ namespace ClassificationMapper
 
         public object Get(GetReport request)
         {
-            Dictionary<string, int> classification_count = new Dictionary<string, int>();
+            Dictionary<string, object> report_result = new Dictionary<string, object>();
 
             if (string.IsNullOrEmpty(request.ItemType))
             {
-                return classification_count.ToList();
+                report_result["classification_counts"] = new Dictionary<string, int>().ToList();
+                report_result["locked_count"] = 0;
+                report_result["total_count"] = 0;
+                return report_result;
             }
 
+            Dictionary<string, int> classification_count = new Dictionary<string, int>();
+            int locked_count = 0;
+            int total_items = 0;
             
             ConfigStore config_store = ConfigStore.GetInstance(_appHost);
             PluginOptions config = config_store.GetConfig();
@@ -128,6 +134,11 @@ namespace ClassificationMapper
 
             foreach (BaseItem item in results)
             {
+                total_items++;
+                if (item.IsLocked || item.IsFieldLocked(MediaBrowser.Model.Entities.MetadataFields.OfficialRating))
+                {
+                    locked_count++;
+                }
                 string classification = item.OfficialRating;
                 if(string.IsNullOrEmpty(classification))
                 {
@@ -149,7 +160,11 @@ namespace ClassificationMapper
             List<KeyValuePair<string, int>> report_data = classification_count.ToList();
             report_data.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
 
-            return report_data;
+            report_result["classification_counts"] = report_data;
+            report_result["locked_count"] = locked_count;
+            report_result["total_count"] = total_items;
+
+            return report_result;
         }
     }
 

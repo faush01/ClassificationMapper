@@ -29,5 +29,7 @@ namespace ClassificationMapper
         public bool IncludeMovies { get; set; } = true;
         public bool IncludeSeries { get; set; } = false;
         public bool IncludeCorrect { get; set; } = true;
+        public bool OverrideLocked { get; set; } = false;
+        public int FieldLockAction { get; set; } = 0;
     }
 }

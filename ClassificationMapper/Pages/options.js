@@ -261,6 +261,23 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         });
     }
 
+    function OverrideLockedChanged(view) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
+            config.OverrideLocked = view.querySelector("#override_locked").checked;
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+            });
+        });
+    }
+    function FieldLockActionChanged(view) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
+            config.FieldLockAction = parseInt(view.querySelector('#field_lock_action').value);
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+            });
+        });
+    }
+
     function PopulateReportData(view, config) {
 
         console.log("Config Options : " + JSON.stringify(config));
@@ -282,20 +299,20 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         var url = "class_mapper/get_report?ItemType=" + types_string + "&IncludeCorrect=" + include_correct + "&stamp=" + new Date().getTime();
         url = ApiClient.getUrl(url);
 
-        var report_table = view.querySelector('#report_table');
-
         ApiClient.getApiData(url).then(function (report_data) {
             console.log("report_data : " + JSON.stringify(report_data));
 
             let report_rows = "";
-            report_data.forEach(function (report_item, index) {
+            report_data["classification_counts"].forEach(function (report_item, index) {
                 report_rows += "<tr>"
                 report_rows += "<td>" + report_item.Key + "</td>"
                 report_rows += "<td>" + report_item.Value + "</td>"
                 report_rows += "</tr>"
             });
 
-            report_table.innerHTML = report_rows;
+            view.querySelector('#report_table').innerHTML = report_rows;
+            view.querySelector('#locked_item_count').innerHTML = report_data["locked_count"];
+            view.querySelector('#total_item_count').innerHTML = report_data["total_count"];
         });
 
     }
@@ -304,6 +321,8 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         view.querySelector("#include_correct").checked = config.IncludeCorrect;
         view.querySelector("#include_movies").checked = config.IncludeMovies;
         view.querySelector("#include_series").checked = config.IncludeSeries;
+        view.querySelector("#override_locked").checked = config.OverrideLocked;
+        view.querySelector('#field_lock_action').value = config.FieldLockAction;
     }
 
     return function (view, params) {
@@ -334,7 +353,15 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
 
             view.querySelector('#include_correct').addEventListener("change", function () {
                 IncludeCorrectChanged(view);
-            });           
+            });
+
+            view.querySelector('#override_locked').addEventListener("change", function () {
+                OverrideLockedChanged(view);
+            });
+
+            view.querySelector('#field_lock_action').addEventListener("change", function () {
+                FieldLockActionChanged(view);
+            });
             
         });
 

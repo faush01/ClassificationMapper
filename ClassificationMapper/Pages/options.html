@@ -33,10 +33,26 @@ along with this program. If not, see http://www.gnu.org/licenses/
             <br /><br />
             <hr />
 
+            <h3>Mapping Options</h3>
+
+            <input type="checkbox" id="override_locked" /> Update locked items<br />
+            Field lock action : 
+            <select id="field_lock_action">
+                <option value="0">None</option>
+                <option value="1">Lock field on update</option>
+                <option value="2">Unlock field on update</option>
+                <option value="3">Always lock field</option>
+                <option value="4">Always unlock field</option>
+            </select>
+            <br />
+
+            <br />
+            <hr />
+
             <h3>Classification Report</h3>
 
-            <input type="checkbox" id="include_movies" /> Movies | 
-            <input type="checkbox" id="include_series" /> Series | 
+            <input type="checkbox" id="include_movies" /> Movies |
+            <input type="checkbox" id="include_series" /> Series |
             <input type="checkbox" id="include_correct" /> Include items with correct classification
             <br /><br />
 
@@ -50,6 +66,11 @@ along with this program. If not, see http://www.gnu.org/licenses/
                 <tbody id="report_table">
                 </tbody>
             </table>
+
+            <br />
+
+            Locked Items : <span id="locked_item_count"></span><br />
+            Total Items : <span id="total_item_count"></span><br />
 
         </div>
     </div>

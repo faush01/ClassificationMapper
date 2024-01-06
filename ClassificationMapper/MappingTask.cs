@@ -30,6 +30,9 @@ using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Common;
+using System.Linq;
+using MediaBrowser.Model.Entities;
+using System.Reflection;
 
 namespace ClassificationMapper
 {
@@ -92,15 +95,59 @@ namespace ClassificationMapper
             List<BaseItem> updated_items = new List<BaseItem>();
             foreach (BaseItem item in results)
             {
-                //_logger.Info(item.Name + " - " + item.OfficialRating);
+                bool item_needs_saving = false;
 
-                if (!string.IsNullOrEmpty(item.OfficialRating) && 
-                    lookup_table.ContainsKey(item.OfficialRating))
+                if (config.OverrideLocked || (!item.IsLocked && !item.IsFieldLocked(MetadataFields.OfficialRating)))
                 {
-                    _logger.Info("ClassificationMapper Updating - " + item.Name + " - " + item.OfficialRating + " to " + lookup_table[item.OfficialRating]);
-                    item.OfficialRating = lookup_table[item.OfficialRating];
+                    string official_rating = item.OfficialRating;
+                    if (string.IsNullOrEmpty(official_rating))
+                    {
+                        official_rating = "none";
+                    }
+                    //_logger.Info(item.Name + " - " + item.OfficialRating);
+                    if (lookup_table.ContainsKey(official_rating))
+                    {
+                        _logger.Info("ClassificationMapper Updating - " + item.Name + " - " + official_rating + " to " + lookup_table[official_rating]);
+                        item.OfficialRating = lookup_table[official_rating];
+                        item_needs_saving = true;
+                    }
+                }
+
+                // process locking option
+                //bool is_locked = item.IsFieldLocked(MetadataFields.OfficialRating);
+                bool? target_lock_state = null;
+                if(config.FieldLockAction == 1 && item_needs_saving)
+                {
+                    target_lock_state = true;
+                }
+                else if (config.FieldLockAction == 2 && item_needs_saving)
+                {
+                    target_lock_state = false;
+                }
+                else if(config.FieldLockAction == 3) 
+                {
+                    target_lock_state = true;
+                }
+                else if (config.FieldLockAction == 4) 
+                {
+                    target_lock_state = false;
+                }
+
+                if(target_lock_state != null)
+                {
+                    if (target_lock_state.Value == true)
+                    {
+                        item_needs_saving |= SetFieldLocked(MetadataFields.OfficialRating, item);
+                    }
+                    else if(target_lock_state.Value == false)
+                    {
+                        item_needs_saving |= SetFieldUnlocked(MetadataFields.OfficialRating, item);
+                    }
+                }
+
+                if(item_needs_saving)
+                {
                     updated_items.Add(item);
-                    //_itemRepository.SaveItem(item, cancellationToken);
                 }
             }
 
@@ -141,6 +188,41 @@ namespace ClassificationMapper
                         MaxRuntimeTicks = TimeSpan.FromHours(24).Ticks
                     }
                 };
+        }
+
+        private bool SetFieldLocked(MetadataFields field, BaseItem item)
+        {
+            List<MetadataFields> locked = item.LockedFields.ToList<MetadataFields>();
+            if (locked.IndexOf(field) == -1)
+            {
+                locked.Add(MetadataFields.OfficialRating);
+                item.LockedFields = locked.ToArray<MetadataFields>();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private bool SetFieldUnlocked(MetadataFields field, BaseItem item)
+        {
+            List<MetadataFields> locked = item.LockedFields.ToList<MetadataFields>();
+            int index = locked.IndexOf(field);
+            if (index > -1)
+            {
+                while (index > -1)
+                {
+                    locked.RemoveAt(index);
+                    index = locked.IndexOf(field);
+                }
+                item.LockedFields = locked.ToArray<MetadataFields>();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
     }
