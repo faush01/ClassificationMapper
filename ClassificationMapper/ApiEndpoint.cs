@@ -37,10 +37,16 @@ namespace ClassificationMapper
     //[Authenticated]
     public class GetReport : IReturn<Object>
     {
-        [ApiMember(Name = "ItemType", Description = "Type of items to include in the report", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
         public string ItemType { get; set; }
-        [ApiMember(Name = "IncludeCorrect", Description = "Include correct classifications", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
         public string IncludeCorrect { get; set; }
+        public long ParentId { get; set; } = -1;
+    }
+
+    // http://localhost:8096/emby/class_mapper/get_libs
+    [Route("/class_mapper/get_libs", "GET", Summary = "Get a list of libraries")]
+    //[Authenticated]
+    public class GetLibs : IReturn<Object>
+    {
     }
 
     // http://localhost:8096/emby/class_mapper/get_config
@@ -76,13 +82,33 @@ namespace ClassificationMapper
             IApplicationHost appHost)
         {
             _logger = logger.GetLogger("ClassificationMapper - ApiEndpoint");
-            _logger.Info("Loaded");
             _libraryManager = libraryManager;
             _config = config;
             _jsonSerializer = jsonSerializer;
             _fileSystem = fileSystem;
             _applicationPaths = applicationPaths;
             _appHost = appHost;
+        }
+
+        public object Get(GetLibs request)
+        {
+            List<Dictionary<string, object>> libs = new List<Dictionary<string, object>>();
+
+            InternalItemsQuery query_collections = new InternalItemsQuery();
+            query_collections.IncludeItemTypes = new string[] { "CollectionFolder" };
+            query_collections.IsVirtualItem = false;
+            query_collections.Recursive = true;
+            BaseItem[] collections = _libraryManager.GetItemList(query_collections);
+            foreach (BaseItem collection in collections)
+            {
+                Dictionary<string, object> lib = new Dictionary<string, object>();
+                //_logger.Info("Lib Found : " + collection.Name + " - " + collection.InternalId);
+                lib["Name"] = collection.Name;
+                lib["Id"] = collection.InternalId;
+                libs.Add(lib);
+            }
+
+            return libs;
         }
 
         public object Post(SaveConfig request)
@@ -113,13 +139,15 @@ namespace ClassificationMapper
             if (string.IsNullOrEmpty(request.ItemType))
             {
                 report_result["classification_counts"] = new Dictionary<string, int>().ToList();
-                report_result["locked_count"] = 0;
+                report_result["locked_items"] = 0;
+                report_result["locked_fields"] = 0;
                 report_result["total_count"] = 0;
                 return report_result;
             }
 
             Dictionary<string, int> classification_count = new Dictionary<string, int>();
-            int locked_count = 0;
+            int locked_field_count = 0;
+            int locked_item_count = 0;
             int total_items = 0;
             
             ConfigStore config_store = ConfigStore.GetInstance(_appHost);
@@ -130,15 +158,28 @@ namespace ClassificationMapper
 
             InternalItemsQuery query = new InternalItemsQuery();
             query.IncludeItemTypes = item_types;
+            query.IsVirtualItem = false;
+            if(request.ParentId != -1)
+            {
+                query.ParentIds = new long[] { request.ParentId };
+            }
+            query.Recursive = true;
             BaseItem[] results = _libraryManager.GetItemList(query);
 
             foreach (BaseItem item in results)
             {
                 total_items++;
-                if (item.IsLocked || item.IsFieldLocked(MediaBrowser.Model.Entities.MetadataFields.OfficialRating))
+                if (item.IsLocked)
                 {
-                    locked_count++;
+                    _logger.Info("Item Is Locked : " + item.Name);
+                    locked_item_count++;
                 }
+                if(item.IsFieldLocked(MediaBrowser.Model.Entities.MetadataFields.OfficialRating))
+                {
+                    _logger.Info("Field Is Locked : " + item.Name);
+                    locked_field_count++;
+                }
+
                 string classification = item.OfficialRating;
                 if(string.IsNullOrEmpty(classification))
                 {
@@ -161,7 +202,8 @@ namespace ClassificationMapper
             report_data.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
 
             report_result["classification_counts"] = report_data;
-            report_result["locked_count"] = locked_count;
+            report_result["locked_items"] = locked_item_count;
+            report_result["locked_fields"] = locked_field_count;
             report_result["total_count"] = total_items;
 
             return report_result;

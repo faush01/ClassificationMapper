@@ -31,5 +31,6 @@ namespace ClassificationMapper
         public bool IncludeCorrect { get; set; } = true;
         public bool OverrideLocked { get; set; } = false;
         public int FieldLockAction { get; set; } = 0;
+        public bool BackupOriginal { get; set; } = true;
     }
 }

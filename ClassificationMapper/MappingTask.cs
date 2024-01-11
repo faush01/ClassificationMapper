@@ -107,7 +107,21 @@ namespace ClassificationMapper
                     //_logger.Info(item.Name + " - " + item.OfficialRating);
                     if (lookup_table.ContainsKey(official_rating))
                     {
-                        _logger.Info("ClassificationMapper Updating - " + item.Name + " - " + official_rating + " to " + lookup_table[official_rating]);
+                        if (config.BackupOriginal)
+                        {
+                            // remove existing backup of original classification
+                            foreach (string tag in item.Tags)
+                            {
+                                if (tag.StartsWith("OC-"))
+                                {
+                                    item.RemoveTag(tag);
+                                }
+                            }
+                            string oc_tag = "OC-" + official_rating;
+                            item.AddTag(oc_tag);
+                        }
+
+                        _logger.Info("ClassificationMapper Mapping - " + item.Name + " - " + official_rating + " to " + lookup_table[official_rating]);
                         item.OfficialRating = lookup_table[official_rating];
                         item_needs_saving = true;
                     }

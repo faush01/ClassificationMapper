@@ -278,6 +278,21 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         });
     }
 
+    function BackupOriginalChanged(view) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
+            config.BackupOriginal = view.querySelector("#backup_original").checked;
+            ApiClient.sendPostQuery(SaveConfigUrl(), config).then(function (result) {
+                console.log("Save config data result : " + JSON.stringify(result));
+            });
+        });
+    }
+
+    function LibSelectChanged(view) {
+        ApiClient.getApiData(GetConfigUrl()).then(function (config) {
+            PopulateReportData(view, config);
+        });
+    }
+    
     function PopulateReportData(view, config) {
 
         console.log("Config Options : " + JSON.stringify(config));
@@ -296,7 +311,9 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
             include_correct = "true";
         }
 
-        var url = "class_mapper/get_report?ItemType=" + types_string + "&IncludeCorrect=" + include_correct + "&stamp=" + new Date().getTime();
+        let parent_id = view.querySelector('#lib_select').value;
+
+        var url = "class_mapper/get_report?ItemType=" + types_string + "&IncludeCorrect=" + include_correct + "&ParentId=" + parent_id + "&stamp=" + new Date().getTime();
         url = ApiClient.getUrl(url);
 
         ApiClient.getApiData(url).then(function (report_data) {
@@ -311,7 +328,8 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
             });
 
             view.querySelector('#report_table').innerHTML = report_rows;
-            view.querySelector('#locked_item_count').innerHTML = report_data["locked_count"];
+            view.querySelector('#locked_item_count').innerHTML = report_data["locked_items"];
+            view.querySelector('#locked_field_count').innerHTML = report_data["locked_fields"];
             view.querySelector('#total_item_count').innerHTML = report_data["total_count"];
         });
 
@@ -323,12 +341,33 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
         view.querySelector("#include_series").checked = config.IncludeSeries;
         view.querySelector("#override_locked").checked = config.OverrideLocked;
         view.querySelector('#field_lock_action').value = config.FieldLockAction;
+        view.querySelector("#backup_original").checked = config.BackupOriginal;
+    }
+
+    function PupulateLibList(view) {
+        var url = ApiClient.getUrl("class_mapper/get_libs?stamp=" + new Date().getTime());
+
+        ApiClient.getApiData(url).then(function (lib_list) {
+            console.log("lib_list : " + JSON.stringify(lib_list));
+
+            let option_list = "<option value='-1'>All</option>";
+            lib_list.forEach(function (lib_item, index) {
+                option_list += "<option value='" + lib_item.Id + "'>"
+                option_list += lib_item.Name
+                option_list += "</option>"
+            });
+
+            view.querySelector('#lib_select').innerHTML = option_list;
+        });
     }
 
     return function (view, params) {
 
         // init code here
         view.addEventListener('viewshow', function (e) {
+
+            PupulateLibList(view);
+
             ApiClient.getApiData(GetConfigUrl()).then(function (config) {
                 PopulateSettingsPage(view, config);
                 PopulateReportData(view, config);
@@ -361,6 +400,14 @@ define(['mainTabsManager', 'dialogHelper'], function (dialogHelper) {
 
             view.querySelector('#field_lock_action').addEventListener("change", function () {
                 FieldLockActionChanged(view);
+            });
+
+            view.querySelector('#backup_original').addEventListener("change", function () {
+                BackupOriginalChanged(view);
+            });
+
+            view.querySelector('#lib_select').addEventListener("change", function () {
+                LibSelectChanged(view);
             });
             
         });

@@ -66,13 +66,14 @@ namespace ClassificationMapper
         {
             PluginOptions loaded_config = new PluginOptions();
             string config_path = Path.Combine(_applicationPaths.ConfigurationDirectoryPath, confgi_file_name);
-            _logger.Info("Loading plugin config from : " + config_path);
+            _logger.Debug("Loading plugin config from : " + config_path);
 
             lock (_padlock)
             {
                 if (_fileSystem.FileExists(config_path))
                 {
                     string loaded_config_string = _fileSystem.ReadAllText(config_path);
+                    _logger.Debug("Config data : " + loaded_config_string);
                     loaded_config = _jsonSerializer.DeserializeFromString<PluginOptions>(loaded_config_string);
                 }
             }
@@ -83,12 +84,12 @@ namespace ClassificationMapper
         public void SaveConfig(PluginOptions config_data)
         {
             string config_path = Path.Combine(_applicationPaths.ConfigurationDirectoryPath, confgi_file_name);
-            _logger.Info("Saving plugin config to : " + config_path);
+            _logger.Debug("Saving plugin config to : " + config_path);
 
             lock (_padlock)
             {
                 string config_string_data = _jsonSerializer.SerializeToString(config_data);
-                _logger.Info("Config data : " + config_string_data);
+                _logger.Debug("Config data : " + config_string_data);
                 _fileSystem.WriteAllText(config_path, config_string_data);
             }
         }
